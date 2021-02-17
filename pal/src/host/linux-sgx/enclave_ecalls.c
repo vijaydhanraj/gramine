@@ -95,7 +95,8 @@ void handle_ecall(long ecall_index, void* ecall_args, void* exit_target, void* e
                        COPY_UNTRUSTED_VALUE(&ms->ms_qe_targetinfo),
                        COPY_UNTRUSTED_VALUE(&ms->ms_topo_info),
                        COPY_UNTRUSTED_VALUE(&ms->rpc_queue),
-                       COPY_UNTRUSTED_VALUE(&ms->ms_dns_host_conf));
+                       COPY_UNTRUSTED_VALUE(&ms->ms_dns_host_conf),
+                       COPY_UNTRUSTED_VALUE(&ms->ms_edmm_enable_heap));
     } else {
         // ENCLAVE_START already called (maybe successfully, maybe not), so
         // only valid ecall is THREAD_START.
