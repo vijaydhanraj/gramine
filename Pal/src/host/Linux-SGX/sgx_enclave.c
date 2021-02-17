@@ -16,6 +16,7 @@
 #include "cpu.h"
 #include "debug_map.h"
 #include "ecall_types.h"
+#include "gsgx.h"
 #include "linux_utils.h"
 #include "ocall_types.h"
 #include "rpc_queue.h"
@@ -675,6 +676,64 @@ static long sgx_ocall_get_quote(void* pms) {
                           &ms->ms_nonce, &ms->ms_quote, &ms->ms_quote_len);
 }
 
+static long sgx_ocall_trim_epc_pages(void* pms) {
+    extern int g_isgx_device;
+    ms_ocall_sgx_page_modt_t* ms = (ms_ocall_sgx_page_modt_t*)pms;
+    ODEBUG(OCALL_TRIM_EPC_PAGES, ms);
+    struct sgx_enclave_modt trim_range;
+    memset(&trim_range, 0, sizeof(trim_range));
+
+    trim_range.offset = ms->offset;
+    trim_range.length = ms->length;
+    trim_range.secinfo = ms->secinfo;
+
+    log_debug("%s: SGX_IOC_PAGE_MODT params: trim_range.offset = 0x%llx, trim_range.length = 0x%llx,"
+               " trim_range.secinfo->flags = 0x%lx", __func__, trim_range.offset, trim_range.length,
+               ((sgx_arch_sec_info_t*)trim_range.secinfo)->flags);
+    long ret = DO_SYSCALL(ioctl, g_isgx_device, SGX_IOC_ENCLAVE_MODIFY_TYPE, &trim_range);
+    log_debug("%s: ret = %ld trim_range.result = %lld, trim_range.count = %lld", __func__, ret,
+                trim_range.result, trim_range.count);
+    return ret;
+}
+
+static long sgx_ocall_remove_trimmed_pages(void* pms) {
+    extern int g_isgx_device;
+    ms_ocall_sgx_page_remove_t* ms = (ms_ocall_sgx_page_remove_t*)pms;
+    ODEBUG(OCALL_REMOVE_TRIMMED_PAGES, ms);
+
+    struct sgx_enclave_remove_pages remove_range;
+    memset(&remove_range, 0, sizeof(remove_range));
+
+    remove_range.offset = ms->offset;
+    remove_range.length = ms->length;
+
+    long ret = DO_SYSCALL(ioctl, g_isgx_device, SGX_IOC_ENCLAVE_REMOVE_PAGES, &remove_range);
+    log_debug("%s: ret = %ld, remove_range.count = %lld", __func__, ret, remove_range.count);
+    return ret;
+}
+
+static long sgx_ocall_relax_page_permissions(void* pms) {
+    extern int g_isgx_device;
+    ms_ocall_sgx_relax_page_perm_t* ms = (ms_ocall_sgx_relax_page_perm_t*)pms;
+    ODEBUG(OCALL_RELAX_PAGE_PERMISSIONS, ms);
+
+    struct sgx_enclave_relax_perm relax_perms;
+    memset(&relax_perms, 0, sizeof(relax_perms));
+
+    relax_perms.offset = ms->offset;
+    relax_perms.length = ms->length;
+    relax_perms.secinfo = ms->secinfo;
+
+    log_debug("%s: relax_perms.offset = 0x%llx, relax_perms.length = 0x%llx,"
+               " relax_perms.secinfo->flags = 0x%lx", __func__, relax_perms.offset, relax_perms.length,
+               ((sgx_arch_sec_info_t*)relax_perms.secinfo)->flags);
+
+    long ret = DO_SYSCALL(ioctl, g_isgx_device, SGX_IOC_ENCLAVE_RELAX_PERMISSIONS, &relax_perms);
+
+    log_debug("%s: ret = %ld, relax_perms.count = %lld", __func__, ret, relax_perms.count);
+    return ret;
+}
+
 sgx_ocall_fn_t ocall_table[OCALL_NR] = {
     [OCALL_EXIT]                     = sgx_ocall_exit,
     [OCALL_MMAP_UNTRUSTED]           = sgx_ocall_mmap_untrusted,
@@ -717,6 +776,9 @@ sgx_ocall_fn_t ocall_table[OCALL_NR] = {
     [OCALL_DEBUG_DESCRIBE_LOCATION]  = sgx_ocall_debug_describe_location,
     [OCALL_EVENTFD]                  = sgx_ocall_eventfd,
     [OCALL_GET_QUOTE]                = sgx_ocall_get_quote,
+    [OCALL_TRIM_EPC_PAGES]           = sgx_ocall_trim_epc_pages,
+    [OCALL_REMOVE_TRIMMED_PAGES]     = sgx_ocall_remove_trimmed_pages,
+    [OCALL_RELAX_PAGE_PERMISSIONS]   = sgx_ocall_relax_page_permissions,
 };
 
 #define EDEBUG(code, ms) \
@@ -836,7 +898,7 @@ static int start_rpc(size_t threads_cnt) {
 int ecall_enclave_start(char* libpal_uri, char* args, size_t args_size, char* env,
                         size_t env_size, int parent_stream_fd, unsigned int host_euid,
                         unsigned int host_egid, sgx_target_info_t* qe_targetinfo,
-                        struct pal_topo_info* topo_info) {
+                        struct pal_topo_info* topo_info, bool edmm_enable_heap) {
     g_rpc_queue = NULL;
 
     if (g_pal_enclave.rpc_thread_num > 0) {
@@ -860,6 +922,7 @@ int ecall_enclave_start(char* libpal_uri, char* args, size_t args_size, char* en
     ms.ms_host_egid        = host_egid;
     ms.ms_qe_targetinfo    = qe_targetinfo;
     ms.ms_topo_info        = topo_info;
+    ms.ms_edmm_enable_heap = edmm_enable_heap;
     ms.rpc_queue           = g_rpc_queue;
     EDEBUG(ECALL_ENCLAVE_START, &ms);
     return sgx_ecall(ECALL_ENCLAVE_START, &ms);

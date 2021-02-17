@@ -1,0 +1,13 @@
+syntax: glob
+*.swp
+*.pyc
+*.pyo
+*.pyd
+*.o
+lib/2to3/lib2to3/*.pickle
+lib3/2to3/lib2to3/*.pickle
+*.cover
+*~
+.coverage
+coverage/
+htmlcov/

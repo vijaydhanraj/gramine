@@ -1945,3 +1945,87 @@ int ocall_sched_getaffinity(void* tcs, size_t cpumask_size, void* cpu_mask) {
     sgx_reset_ustack(old_ustack);
     return retval;
 }
+
+int ocall_trim_epc_pages(void* addr, size_t size, void* secinfo) {
+    int retval = 0;
+    ms_ocall_sgx_page_modt_t* ms;
+
+    void* old_ustack = sgx_prepare_ustack();
+    ms = sgx_alloc_on_ustack_aligned(sizeof(*ms), alignof(*ms));
+    if (!ms) {
+        retval = -ENOMEM;
+        goto out;
+    }
+
+    WRITE_ONCE(ms->offset, (unsigned long long) addr);
+    WRITE_ONCE(ms->length, (unsigned long long) size);
+    void* untrusted_secinfo = sgx_copy_to_ustack(secinfo, sizeof(sgx_arch_sec_info_t));
+    if (!untrusted_secinfo) {
+        sgx_reset_ustack(old_ustack);
+        return -EPERM;
+    }
+    WRITE_ONCE(ms->secinfo, (unsigned long long)untrusted_secinfo);
+
+    do {
+        retval = sgx_exitless_ocall(OCALL_TRIM_EPC_PAGES, ms);
+    } while (retval == -EINTR);
+
+out:
+    sgx_reset_ustack(old_ustack);
+    return retval;
+}
+
+int ocall_remove_trimmed_pages(void* addr, size_t size) {
+    int retval = 0;
+    ms_ocall_sgx_page_remove_t* ms;
+
+    void* old_ustack = sgx_prepare_ustack();
+    ms = sgx_alloc_on_ustack_aligned(sizeof(*ms), alignof(*ms));
+    if (!ms) {
+        retval = -ENOMEM;
+        goto out;
+    }
+    WRITE_ONCE(ms->offset, (unsigned long long) addr);
+    WRITE_ONCE(ms->length, (unsigned long long) size);
+
+    do {
+        retval = sgx_exitless_ocall(OCALL_REMOVE_TRIMMED_PAGES, ms);
+    } while (retval == -EINTR);
+
+out:
+    sgx_reset_ustack(old_ustack);
+    return retval;
+}
+
+int ocall_relax_page_permissions(void* addr, size_t size, void* secinfo) {
+    int retval = 0;
+    ms_ocall_sgx_relax_page_perm_t* ms;
+
+    void* old_ustack = sgx_prepare_ustack();
+    ms = sgx_alloc_on_ustack_aligned(sizeof(*ms), alignof(*ms));
+    if (!ms) {
+        retval = -ENOMEM;
+        goto out;
+    }
+
+    WRITE_ONCE(ms->offset, (unsigned long long)addr);
+    WRITE_ONCE(ms->length, (unsigned long long)size);
+    void* untrusted_secinfo = sgx_copy_to_ustack(secinfo, sizeof(sgx_arch_sec_info_t));
+    if (!untrusted_secinfo) {
+        sgx_reset_ustack(old_ustack);
+        return -EPERM;
+    }
+    WRITE_ONCE(ms->secinfo, (unsigned long long)untrusted_secinfo);
+
+    sgx_arch_sec_info_t* ms_secinfo = (sgx_arch_sec_info_t*)ms->secinfo;
+    log_debug("%s: ms->offset = 0x%llx, ms->length = 0x%llx, ms->secinfo = 0x%llx,"
+               "secinfo->flags = %ld", __func__, ms->offset, ms->length, ms->secinfo,
+               ms_secinfo->flags);
+    do {
+        retval = sgx_exitless_ocall(OCALL_RELAX_PAGE_PERMISSIONS, ms);
+    } while (retval == -EINTR);
+
+out:
+    sgx_reset_ustack(old_ustack);
+    return retval;
+}
