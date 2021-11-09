@@ -230,6 +230,7 @@ int _DkCpuIdRetrieve(uint32_t leaf, uint32_t subleaf, uint32_t values[4]);
 int _DkAttestationReport(const void* user_report_data, PAL_NUM* user_report_data_size,
                          void* target_info, PAL_NUM* target_info_size, void* report,
                          PAL_NUM* report_size);
+int _DkDeviceIoControl(PAL_HANDLE handle, unsigned int cmd, uint64_t arg);
 int _DkAttestationQuote(const void* user_report_data, PAL_NUM user_report_data_size, void* quote,
                         PAL_NUM* quote_size);
 int _DkSetProtectedFilesKey(const char* pf_key_hex);
