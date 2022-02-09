@@ -112,7 +112,8 @@ static int64_t dev_write(PAL_HANDLE handle, uint64_t offset, uint64_t size, cons
     return bytes < 0 ? unix_to_pal_error(bytes) : bytes;
 }
 
-static int dev_map(PAL_HANDLE handle, void** addr, int prot, uint64_t offset, uint64_t size) {
+static int dev_map(PAL_HANDLE handle, void** addr, pal_prot_flags_t prot, uint64_t offset,
+                   uint64_t size) {
     if (HANDLE_HDR(handle)->type != PAL_TYPE_DEV)
         return -PAL_ERROR_INVAL;
 
@@ -1103,7 +1104,7 @@ static int get_ioctl_struct(unsigned int cmd, toml_array_t** out_toml_ioctl_stru
     }
 
     /* this IOCTL is not in the cache, must find it in the manifest and save in cache (if found) */
-    toml_table_t* manifest_sgx = toml_table_in(g_pal_state.manifest_root, "sgx");
+    toml_table_t* manifest_sgx = toml_table_in(g_pal_public_state.manifest_root, "sgx");
     if (!manifest_sgx)
         return -PAL_ERROR_NOTIMPLEMENTED;
 

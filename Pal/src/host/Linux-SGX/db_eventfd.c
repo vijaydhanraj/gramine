@@ -53,8 +53,7 @@ static int eventfd_pal_open(PAL_HANDLE* handle, const char* type, const char* ur
          *        currently used for LibOS emulation of DRM_IOCTL_I915_GEM_EXECBUFFER2_WR ioctl */
         fd = create;
     } else {
-        /* Using create arg as a work-around (note: initval is uint32 but create is int32).*/
-        fd = ocall_eventfd(create, eventfd_type(options));
+        fd = ocall_eventfd(eventfd_type(options));
     }
 
     if (fd < 0)

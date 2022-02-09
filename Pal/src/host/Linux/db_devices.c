@@ -109,7 +109,8 @@ static int64_t dev_write(PAL_HANDLE handle, uint64_t offset, uint64_t size, cons
     return bytes < 0 ? unix_to_pal_error(bytes) : bytes;
 }
 
-static int dev_map(PAL_HANDLE handle, void** addr, int prot, uint64_t offset, uint64_t size) {
+static int dev_map(PAL_HANDLE handle, void** addr, pal_prot_flags_t prot, uint64_t offset,
+                   uint64_t size) {
     if (HANDLE_HDR(handle)->type != PAL_TYPE_DEV)
         return -PAL_ERROR_INVAL;
 

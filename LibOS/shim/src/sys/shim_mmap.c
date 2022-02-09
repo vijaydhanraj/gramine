@@ -133,7 +133,7 @@ void* shim_do_mmap(void* addr, size_t length, int prot, int flags, int fd, unsig
 
     /* mmap on shared anonymous memory under SGX is special: pass-through (will be allocated in
      * untrusted memory by Linux-SGX PAL) and not reflected in VMA metadata */
-    if (!strcmp(g_pal_control->host_type, "Linux-SGX") &&
+    if (!strcmp(g_pal_public_state->host_type, "Linux-SGX") &&
             (flags & (MAP_ANONYMOUS | MAP_SHARED)) == (MAP_ANONYMOUS | MAP_SHARED)) {
         /* we abuse PAL_ALLOC_RESERVE as a magic hint to PAL that this is shared anon memory */
         ret = DkVirtualMemoryAlloc(&addr, length, /*alloc_type=*/PAL_ALLOC_RESERVE,
@@ -144,7 +144,7 @@ void* shim_do_mmap(void* addr, size_t length, int prot, int flags, int fd, unsig
     }
 
     /* mmap on devices under SGX is special: pass-through and not reflected in VMA metadata */
-    if (!strcmp(g_pal_control->host_type, "Linux-SGX") && hdl &&
+    if (!strcmp(g_pal_public_state->host_type, "Linux-SGX") && hdl &&
             hdl->type == TYPE_CHROOT && hdl->dentry &&
             hdl->dentry->type == S_IFCHR) {
         void* ret_addr = addr;
@@ -260,8 +260,9 @@ long shim_do_mprotect(void* addr, size_t length, int prot) {
         return -EINVAL;
     }
 
-    if (!strcmp(g_pal_control->host_type, "Linux-SGX") && (addr < g_pal_control->user_address.start
-            || (uintptr_t)g_pal_control->user_address.end < (uintptr_t)addr + length)) {
+    if (!strcmp(g_pal_public_state->host_type, "Linux-SGX") &&
+       (addr < g_pal_public_state->user_address.start
+            || (uintptr_t)g_pal_public_state->user_address.end < (uintptr_t)addr + length)) {
         /* Assume that this is an mprotect on untrusted memory outside SGX enclave */
         return 0;
     }
