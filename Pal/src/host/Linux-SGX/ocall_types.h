@@ -69,6 +69,7 @@ enum {
     OCALL_TRIM_EPC_PAGES,
     OCALL_REMOVE_TRIMMED_PAGES,
     OCALL_RELAX_PAGE_PERMISSIONS,
+    OCALL_RESTRICT_PAGE_PERMISSIONS,
     OCALL_NR,
 };
 
@@ -305,7 +306,7 @@ typedef struct {
 } ms_ocall_get_quote_t;
 
 typedef struct {
-    unsigned long long offset;
+    unsigned long long addr;
     unsigned long long length;
     unsigned long long secinfo;
     unsigned long long result;
@@ -313,24 +314,24 @@ typedef struct {
 } ms_ocall_sgx_page_modt_t;
 
 typedef struct {
-    unsigned long long offset;
+    unsigned long long addr;
     unsigned long long length;
     unsigned long long count;
 } ms_ocall_sgx_page_remove_t;
 
 typedef struct {
-    unsigned long long offset;
+    unsigned long long addr;
     unsigned long long length;
     unsigned long long secinfo;
     unsigned long long count;
 } ms_ocall_sgx_relax_page_perm_t;
 
 typedef struct {
-    unsigned long long offset;
-    unsigned long long length;
-    unsigned long long secinfo;
-    unsigned long long result;
-    unsigned long long count;
+    unsigned long long ms_addr;
+    unsigned long long ms_length;
+    unsigned long long ms_secinfo;
+    unsigned long long ms_result;
+    unsigned long long ms_count;
 } ms_ocall_sgx_restrict_page_perm_t;
 
 #pragma pack(pop)

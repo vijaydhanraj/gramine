@@ -44,7 +44,7 @@ sgx.debug = true
 
 # EDMM options
 sgx.enable_stats = true
-sgx.edmm_enable_heap = false
+sgx.edmm_enable_heap = true
 #sgx.preheat_enclave_sz = "128M"
 #sgx.edmm_batch_allocation = true
 #sgx.edmm_lazyfree_th = 15

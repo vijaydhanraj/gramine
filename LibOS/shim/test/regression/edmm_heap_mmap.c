@@ -35,8 +35,8 @@ static void mmap_munmap_memory(int val) {
     size_t mmap_length = 0x4000;
     struct timeval tv1 = {0};
     struct timeval tv2 = {0};
-    long long mmap_diff;
-    long long munmap_diff;
+    long long mmap_diff = 0;
+    long long munmap_diff = 0;
 
     for (int i = 0; i < 500; i++) {
         if (gettimeofday(&tv1, NULL)) {

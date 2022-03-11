@@ -118,3 +118,5 @@ int ocall_trim_epc_pages(void* addr, size_t nr_pages, void* secinfo);
 int ocall_remove_trimmed_pages(void* addr, size_t nr_pages);
 
 int ocall_relax_page_permissions(void* addr, size_t size, void* secinfo);
+
+int ocall_restrict_page_permissions(void* addr, size_t size, void* secinfo);
