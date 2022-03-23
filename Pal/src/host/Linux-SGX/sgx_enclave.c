@@ -918,7 +918,8 @@ static int start_rpc(size_t threads_cnt) {
 int ecall_enclave_start(char* libpal_uri, char* args, size_t args_size, char* env,
                         size_t env_size, int parent_stream_fd, unsigned int host_euid,
                         unsigned int host_egid, sgx_target_info_t* qe_targetinfo,
-                        struct pal_topo_info* topo_info, bool edmm_enable_heap) {
+                        struct pal_topo_info* topo_info,
+                        struct pal_sgx_manifest_config* manifest_keys) {
     g_rpc_queue = NULL;
 
     if (g_pal_enclave.rpc_thread_num > 0) {
@@ -942,7 +943,7 @@ int ecall_enclave_start(char* libpal_uri, char* args, size_t args_size, char* en
     ms.ms_host_egid        = host_egid;
     ms.ms_qe_targetinfo    = qe_targetinfo;
     ms.ms_topo_info        = topo_info;
-    ms.ms_edmm_enable_heap = edmm_enable_heap;
+    ms.ms_manifest_keys    = manifest_keys;
     ms.rpc_queue           = g_rpc_queue;
     EDEBUG(ECALL_ENCLAVE_START, &ms);
     return sgx_ecall(ECALL_ENCLAVE_START, &ms);

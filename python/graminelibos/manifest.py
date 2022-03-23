@@ -99,6 +99,8 @@ class Manifest:
         sgx.setdefault('nonpie_binary', False)
         sgx.setdefault('enable_stats', False)
         sgx.setdefault('edmm_enable_heap', False)
+        sgx.setdefault('preheat_enclave_size', '0')
+
 
         # NOTE: `loader.preload` is deprecated; remove the below in the future
         loader = manifest.setdefault('loader', {})

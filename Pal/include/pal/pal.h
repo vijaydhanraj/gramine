@@ -130,8 +130,6 @@ struct pal_public_state {
 
     struct pal_cpu_info cpu_info;
 
-    bool edmm_enable_heap;
-
     bool enable_sysfs_topology;
     struct pal_topo_info topo_info; /* received from untrusted host, but sanitized */
 };
