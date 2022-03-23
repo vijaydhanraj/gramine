@@ -20,6 +20,7 @@
 
 #include "enclave_api.h"
 #include "enclave_ocalls.h"
+#include "host_ecalls.h"
 #include "log.h"
 #include "pal.h"
 #include "pal_internal.h"
@@ -39,6 +40,8 @@ extern struct pal_linuxsgx_state {
     /* remaining heap usable by application */
     void* heap_min;
     void* heap_max;
+
+    struct pal_sgx_manifest_config manifest_keys;
 } g_pal_linuxsgx_state;
 
 enum sgx_attestation_type {
@@ -71,7 +74,8 @@ extern size_t g_pal_internal_mem_size;
 noreturn void pal_linux_main(void* uptr_libpal_uri, size_t libpal_uri_len, void* uptr_args,
                              size_t args_size, void* uptr_env, size_t env_size,
                              int parent_stream_fd, void* uptr_qe_targetinfo, void* uptr_topo_info,
-                             void* uptr_rpc_queue, void* uptr_dns_conf, bool uptr_edmm_enable_heap);
+                             void* uptr_rpc_queue, void* uptr_dns_conf,
+                             struct pal_sgx_manifest_config* uptr_manifest_keys);
 void pal_start_thread(void);
 
 extern char __text_start, __text_end, __data_start, __data_end;

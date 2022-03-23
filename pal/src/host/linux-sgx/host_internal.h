@@ -47,11 +47,10 @@ struct pal_enclave {
     unsigned long thread_num;
     unsigned long rpc_thread_num;
     unsigned long ssa_frame_size;
-    bool edmm_enable_heap;
     bool nonpie_binary;
     enum sgx_attestation_type attestation_type;
     char* libpal_uri; /* Path to the PAL binary */
-
+    struct pal_sgx_manifest_config manifest_keys;
 #ifdef DEBUG
     /* profiling */
     bool profile_enable;

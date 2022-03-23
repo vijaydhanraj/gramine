@@ -5,6 +5,7 @@
 
 #include <stddef.h>
 
+#include "host_ecalls.h"
 #include "pal.h"
 #include "sgx_arch.h"
 
@@ -18,20 +19,20 @@ enum {
 struct rpc_queue;
 
 typedef struct {
-    char*                     ms_libpal_uri;
-    size_t                    ms_libpal_uri_len;
-    char*                     ms_args;
-    size_t                    ms_args_size;
-    char*                     ms_env;
-    size_t                    ms_env_size;
-    int                       ms_parent_stream_fd;
-    sgx_target_info_t*        ms_qe_targetinfo;
-    struct pal_topo_info*     ms_topo_info;
-    struct pal_dns_host_conf* ms_dns_host_conf;
+    char*                           ms_libpal_uri;
+    size_t                          ms_libpal_uri_len;
+    char*                           ms_args;
+    size_t                          ms_args_size;
+    char*                           ms_env;
+    size_t                          ms_env_size;
+    int                             ms_parent_stream_fd;
+    sgx_target_info_t*              ms_qe_targetinfo;
+    struct pal_topo_info*           ms_topo_info;
+    struct pal_dns_host_conf*       ms_dns_host_conf;
     /* We cannot directly read the edmm_enable_heap flag using toml as it calls slab_alloc which
      * will end up requesting enclave heap. So passing it as an argument but it will better to
      * encapsulate such fields/flags in a common struct. */
-    bool                      ms_edmm_enable_heap;
+    struct pal_sgx_manifest_config* ms_manifest_keys;
 
     struct rpc_queue*  rpc_queue; /* pointer to RPC queue in untrusted mem */
 } ms_ecall_enclave_start_t;

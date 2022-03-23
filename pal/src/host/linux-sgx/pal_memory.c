@@ -87,7 +87,7 @@ int _PalVirtualMemoryProtect(void* addr, uint64_t size, pal_prot_flags_t prot) {
     }
 #endif
 
-    if (g_pal_public_state.edmm_enable_heap) {
+    if (g_pal_linuxsgx_state.manifest_keys.edmm_enable_heap) {
         ret = update_enclave_page_permissions(addr, size, prot);
     } else {
         if (FIRST_TIME()) {

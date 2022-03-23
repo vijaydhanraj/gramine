@@ -542,8 +542,17 @@ out:
 
 __attribute_no_sanitize_address
 static void do_preheat_enclave(void) {
-    for (uint8_t* i = g_pal_linuxsgx_state.heap_min; i < (uint8_t*)g_pal_linuxsgx_state.heap_max;
-             i += g_page_size) {
+    uint8_t* i;
+    /* Heap allocation requests are serviced starting from highest heap address when ASLR is
+     * disabled. So optimizing for this case by preheating from the top of heap. */
+    if (g_pal_linuxsgx_state.manifest_keys.edmm_enable_heap) {
+        i = (uint8_t*)g_pal_linuxsgx_state.heap_max -
+            g_pal_linuxsgx_state.manifest_keys.preheat_enclave_size;
+    } else {
+        i = (uint8_t*)g_pal_linuxsgx_state.heap_min;
+    }
+
+    for (; i < (uint8_t*)g_pal_linuxsgx_state.heap_max; i += g_page_size) {
         READ_ONCE(*(size_t*)i);
     }
 }
@@ -554,7 +563,8 @@ __attribute_no_stack_protector
 noreturn void pal_linux_main(void* uptr_libpal_uri, size_t libpal_uri_len, void* uptr_args,
                              size_t args_size, void* uptr_env, size_t env_size,
                              int parent_stream_fd, void* uptr_qe_targetinfo, void* uptr_topo_info,
-                             void* uptr_rpc_queue, void* uptr_dns_conf, bool edmm_enable_heap) {
+                             void* uptr_rpc_queue, void* uptr_dns_conf,
+                             struct pal_sgx_manifest_config* uptr_manifest_keys) {
     /* All our arguments are coming directly from the host. We are responsible to check them. */
     int ret;
 
@@ -581,7 +591,35 @@ noreturn void pal_linux_main(void* uptr_libpal_uri, size_t libpal_uri_len, void*
     g_pal_linuxsgx_state.heap_min = GET_ENCLAVE_TCB(heap_min);
     g_pal_linuxsgx_state.heap_max = GET_ENCLAVE_TCB(heap_max);
 
-    g_pal_public_state.edmm_enable_heap = edmm_enable_heap;
+    struct pal_sgx_manifest_config manifest_keys;
+    if (!sgx_copy_to_enclave(&manifest_keys,
+                             sizeof(manifest_keys),
+                             uptr_manifest_keys,
+                             sizeof(*uptr_manifest_keys))) {
+        log_error("Copying manifest_keys into the enclave failed");
+        ocall_exit(1, /*is_exitgroup=*/true);
+    }
+
+    if (!manifest_keys.edmm_enable_heap && manifest_keys.preheat_enclave_size > 1) {
+        log_error("Cannot parse 'sgx.preheat_enclave_size'"
+                  " (value must be either 0 or 1 when sgx.edmm_enable_heap is disabled !)\n");
+        ocall_exit(1, /*is_exitgroup=*/true);
+    }
+
+    if (manifest_keys.edmm_enable_heap && manifest_keys.preheat_enclave_size > 0) {
+        if (!IS_ALIGNED(manifest_keys.preheat_enclave_size, g_page_size)) {
+            log_error("preheat_enclave_size should be page aligned: %ld", g_page_size);
+            ocall_exit(1, /*is_exitgroup=*/true);
+        }
+
+        unsigned long enclave_heap_size =
+            (uint8_t*)g_pal_linuxsgx_state.heap_max - (uint8_t*)g_pal_linuxsgx_state.heap_min;
+        if (manifest_keys.preheat_enclave_size > enclave_heap_size) {
+            log_error("preheat_enclave_size should be less than heap size: %ld", enclave_heap_size);
+            ocall_exit(1, /*is_exitgroup=*/true);
+        }
+    }
+    g_pal_linuxsgx_state.manifest_keys = manifest_keys;
 
     /* Skip URI_PREFIX_FILE. */
     if (libpal_uri_len < URI_PREFIX_FILE_LEN) {
@@ -729,17 +767,7 @@ noreturn void pal_linux_main(void* uptr_libpal_uri, size_t libpal_uri_len, void*
         }
     }
 
-    bool preheat_enclave;
-    ret = toml_bool_in(g_pal_public_state.manifest_root, "sgx.preheat_enclave",
-                       /*defaultval=*/false, &preheat_enclave);
-    if (ret < 0) {
-        log_error("Cannot parse 'sgx.preheat_enclave' (the value must be `true` or `false`)");
-        ocall_exit(1, /*is_exitgroup=*/true);
-    }
-
-    /* TODO: Skip touching enclave memory if EDMM is enabled. Will address this as part of
-     * Hybrid allocation optimization. */
-    if (!g_pal_public_state.edmm_enable_heap && preheat_enclave)
+    if (g_pal_linuxsgx_state.manifest_keys.preheat_enclave_size)
         do_preheat_enclave();
 
     /* For backward compatibility, `loader.pal_internal_mem_size` does not include
