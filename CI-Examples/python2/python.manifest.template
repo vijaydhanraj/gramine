@@ -45,9 +45,9 @@ sgx.debug = true
 # EDMM options
 sgx.enable_stats = true
 sgx.edmm_enable_heap = true
-sgx.preheat_enclave_size = "128M"
+sgx.preheat_enclave_size = "0M"
 #sgx.edmm_batch_allocation = true
-#sgx.edmm_lazyfree_th = 15
+sgx.edmm_lazyfree_th = 15
 
 sgx.allowed_files = [
   "file:/etc/nsswitch.conf",

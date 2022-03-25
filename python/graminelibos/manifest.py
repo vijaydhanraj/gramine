@@ -100,6 +100,7 @@ class Manifest:
         sgx.setdefault('enable_stats', False)
         sgx.setdefault('edmm_enable_heap', False)
         sgx.setdefault('preheat_enclave_size', '0')
+        sgx.setdefault('edmm_lazyfree_th', 0)
 
 
         # NOTE: `loader.preload` is deprecated; remove the below in the future
