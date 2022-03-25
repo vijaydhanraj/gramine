@@ -53,6 +53,7 @@ pal_sgx_lds = join_paths(meson.current_source_dir(), 'enclave.lds')
 
 libpal_sgx = shared_library('pal',
     'common_manifest_sgx_parser.c',
+    'edmm_pages.c',
     'enclave_api.S',
     'enclave_ecalls.c',
     'enclave_entry.S',
